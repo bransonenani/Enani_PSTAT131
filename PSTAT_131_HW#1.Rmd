@@ -1,0 +1,70 @@
+---
+title: 'Homework #1 Pstat 131'
+author: "Branson Enani"
+date: "2022-09-27"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+***Question 1***
+
+Supervised learning is when we wish to fit a model that relates the response to the predictors, with the aim of accurately predicting the response for future observations (prediction) or better understanding the relationship between the response and the predictors (inference). (Textbook, pg. 26).
+
+Unsupervised learning differs in the sense that there is a vector of measurement ($X_i$), but there isn't an associated response variable. This means that linear regression doesn't apply to this type of learning. 
+
+
+***Question 2***
+
+In the context of machine learning, the general rule is that regression models tend to be representations of quantitative data (with some exceptions such as the logistic regression model) and classification models represent qualitative data that is more categorical as oppposed to numerical. 
+
+***Question 3***
+
+
+
+***Exercise 1***
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+```
+
+
+```{r}
+data1 <- mpg
+ggplot(data= (data1), aes(x=hwy))+geom_histogram(binwidth = 2,colour='black',  fill = 'darkgreen', alpha = 0.5)
+
+```
+Observation here is that the most common MPG level is between 15-30. This rest of the bins are fairly empty in this histogram. 
+
+
+```{r}
+dat <- data.frame(highway = data1$hwy, city = data1$cty)
+ggplot(dat, aes(x=highway, y=city), ) +
+    geom_point(shape=1, color = 'navy') 
+```
+
+
+There is a strong linear positive correlation between highway and city mpg meaning that a higher highway mpg translates into a higher city mpg. 
+
+
+```{r}
+
+man_data <- (data1$manufacturer)
+tab_1 <- table(man_data, useNA = 'always')
+dat1 <- as.data.frame(tab_1)
+manufacturer <- dat1$man_data
+frequency <- dat1$Freq
+ggplot(data = dat1, aes(y = manufacturer,x= frequency), horiz = TRUE)+geom_bar(stat = 'identity', colour = 'maroon', fill = 'darkorange')
+```
+
+```{r}
+ggplot(data = data1, aes(hwy, group = cyl  ))+geom_boxplot(colour = 'blue', fill = 'purple')
+```
+
+
+```{r}
+print(data1$cyl)
+```
