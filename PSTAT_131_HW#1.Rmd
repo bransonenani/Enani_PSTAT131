@@ -22,6 +22,28 @@ In the context of machine learning, the general rule is that regression models t
 
 ***Question 3***
 
+When it comes to regression problems, two commonly used metrics to assess the accuracy of the model would be the Training MSE (mean squared error) as well as the Test MSE. By using these two metrics, comparisons can be ade about how well the ML model is doing. For classification models the metrics are similar however they are called the Training Error Rate and the Testing error Rate. These two assess incorrect classifications withing the model.
+
+***Question 4***
+-A descriptive model tends to use visual representations like a scatterplots with an emphasis on the visual aspect.  
+
+-A predictive model aims to find the features of a model that can predict Y with the minimum error (most accuracy). Hypthesis tests are not as important for predictive models. 
+
+-Inferential models tend to want to test theories and find a relationship between the outcome and the predictors. It aims to find which features are significant in this relationship. 
+
+***Question 5***
+
+-Mechanistic models generally assume a parametric form, can add more parameters for more flexibility and can run into the problem of overfitting from too many parameters. Empirically-driven models do not assume a particular form and are thus also known as non-parametric, such models require a lot more observations and generally have a high degree of flexibility once they are initially created.
+
+-Generally I would assume that mechanistic models are easier to understand because they have a familiar structure with particular variables. People are generally very familiar with this form. 
+
+-Because of the fact that simple models tend to have high bias and low variance, and flexible models tend to have low bias and high variance, finding a model where the bias and variance are both low is a difficult task 
+
+***Question 6***
+
+-The question of how likely a voter is to vote for a particular candidate would be considered a predictive model because it is aiming to find a particular outcome with a high degree of accuracy
+
+-When it comes to how a voters support of a candidate would change based on contact would be more of an inferential question because this is aiming to find a particular relationship between X and Y and is essentially testing a theory.
 
 
 ***Exercise 1***
@@ -61,10 +83,18 @@ ggplot(data = dat1, aes(y = manufacturer,x= frequency), horiz = TRUE)+geom_bar(s
 ```
 
 ```{r}
-ggplot(data = data1, aes(hwy, group = cyl  ))+geom_boxplot(colour = 'blue', fill = 'purple')
+cylinders <- factor(data1$cyl)
+ggplot(data = data1, aes(hwy, cylinders  ))+geom_boxplot(colour = 'blue', fill = 'purple')
 ```
 
 
 ```{r}
-print(data1$cyl)
+library('corrplot')
+
+mpg_matrix <- mpg %>%
+    select_if(is.numeric) %>%
+    cor(.)
+corr1 <- cor(mpg_matrix)
+corrplot(corr1, type = 'lower')
 ```
+From this information it is clear that there are some  correlations in both the negative and the positive direction. For example, the year has a negative correlation with highway and city mileage and a positive correlation with displacement. These things seem to make sense as to what we would expect. Additionally, highway and city mileage are strongly correlated in a positive direction. 
