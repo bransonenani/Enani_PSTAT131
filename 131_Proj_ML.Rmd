@@ -1,0 +1,25 @@
+```{r}
+
+flight_data <- read.csv('/Users/kerouac/Downloads/DelayedFlights.csv')
+library(tidyverse)
+```
+
+```{r}
+head(flight_data)
+carriers <- flight_data$UniqueCarrier
+table(carriers)
+
+
+```
+
+
+```{r}
+# jetblue_entries <- flight_data
+names(flight_data)
+flight_data["UniqueCarrier" == 'B6']
+
+united_airlines <- flight_data %>% filter(UniqueCarrier == "UA")
+jetblue_airlines <- flight_data %>% filter(UniqueCarrier == "B6", ArrDelay>30)
+
+```
+

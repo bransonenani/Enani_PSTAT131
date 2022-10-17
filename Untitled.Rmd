@@ -1,0 +1,26 @@
+---
+title: "PSTAT_131_HW2"
+author: "Branson Enani"
+date: "2022-10-10"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+abalone <- read.csv('/Users/kerouac/Downloads/abalone.data')
+ab_colnames <- c('Sex', 'Length', 'Diameter', 'Height', 'Whole Weight', 'Shucked Weight', 'Viscera Weight', 'Shell Weight', 'Rings' )
+abalone_df <- data.frame(abalone)
+colnames(abalone_df) <- ab_colnames
+
+
+```
+
+```{r}
+Age <- 1.5*(abalone_df$Rings)
+abalone_df$Age <- Age
+ggplot2::ggplot(data = abalone_df, aes(x=Age ))+geom_histogram(color = 'DodgerBlue', fill = 'Red')
+```
+

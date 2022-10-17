@@ -1,0 +1,140 @@
+---
+title: "PSTAT_131_HW2"
+author: "Branson Enani"
+date: "2022-10-10"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(tidymodels)
+library(corrplot)
+library(ggthemes)
+abalone <- read.csv('/Users/kerouac/Downloads/homework-2/data/abalone.csv')
+
+
+
+
+
+```
+
+
+***1***
+```{r}
+age <- 1.5+(abalone$rings)
+abalone$Age <- age
+ggplot2::ggplot(data = abalone, aes(x=age ))+geom_histogram(color = 'DodgerBlue', fill = 'Red')+scale_x_continuous(n.breaks = 30)
+
+```
+We can see from this plot that the distribution of x has a degree of right skewness with the majority of observations of Age being between 7 and 15 years. 
+
+
+***2***
+```{r}
+set.seed(0808)
+abalone_split <- initial_split(abalone, prop = 0.80,
+                                strata = Age)
+abalone_train <- training(abalone_split)
+abalone_test <- testing(abalone_split)
+```
+ 
+
+
+***3***
+```{r}
+
+abalone_recipe <- recipe( Age ~., data = subset(abalone_train, select = -rings))
+                            
+abalone_recipe%>%
+  step_scale()
+abalone_recipe%>%
+  step_center()
+#                             
+# abalone_recipe%>%
+#   step_normalize(all_numeric_predictors( ))
+
+abalone_recipe%>%
+  step_interact(terms = type~shucked_weight)
+
+abalone_recipe%>%
+   step_interact(terms = longest_shell~diameter)
+abalone_recipe%>%
+   step_interact(terms = shucked_weight~shell_weight)
+abalone_recipe%>%
+  step_dummy(all_nominal_predictors())
+
+
+
+```
+The reason that we do not want to use rings to predict age is because there is colinearity between the two of these variables. As the number of rings increases, the age will also increase at a constant rate so there is no use in using rings in our formula since we already know the exact relationship between the two.
+
+***4***
+
+```{r}
+lm_model <- linear_reg() %>%
+  set_engine("lm")
+```
+
+
+
+
+
+
+***5***
+```{r}
+
+
+lm_wflow <- workflow() %>%
+  add_model(lm_model) %>%
+  add_recipe(abalone_recipe)
+
+
+lm_fit <- fit(lm_wflow, abalone_train)
+
+lm_fit %>%
+  # This returns the parsnip object:
+  extract_fit_parsnip() %>%
+  # Now tidy the linear model object:
+  tidy()
+
+```
+
+
+***6***
+```{r}
+
+
+
+predict(lm_fit, new_data = data.frame(type = 'F', longest_shell = 0.5, diameter = 0.1, height = 0.3, whole_weight = 4, shucked_weight = 1, viscera_weight = 2, shell_weight = 1))
+
+
+
+
+
+
+
+
+
+
+```
+***7***
+
+```{r}
+abalone_train_res <- predict(lm_fit, new_data = abalone_train %>% select(-Age))
+abalone_train_res <- bind_cols(abalone_train_res, abalone_train %>% select(Age))
+```
+
+
+```{r}
+rmse(abalone_train_res, truth = Age, estimate = .pred)
+abalone_metrics <- metric_set(rmse, rsq, mae)
+abalone_metrics(abalone_train_res, truth = Age, estimate = .pred)
+```
+
+We can see here that the model did a fairly decent job of predicting the abalone's age which an $R^2$ value of 0.538 and a rmse of 2.1655, as well as mean absolute error of 1.565. The errors were not immensely high which means that our predicted vs actual values were fairly close. Additionally, the $R^2$ value is not incredibly high, but shows that a decent amount of the age is explained by the predictor variables. 
+
