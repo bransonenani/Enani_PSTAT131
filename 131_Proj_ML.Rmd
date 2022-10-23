@@ -2,24 +2,98 @@
 
 flight_data <- read.csv('/Users/kerouac/Downloads/DelayedFlights.csv')
 library(tidyverse)
+library(tidymodels)
 ```
 
 ```{r}
-head(flight_data)
+
 carriers <- flight_data$UniqueCarrier
-table(carriers)
+
+endeavor_air <- flight_data %>% 
+  filter(UniqueCarrier == '9E')
+american_airlines <- flight_data %>% 
+  filter(UniqueCarrier == 'AA')
+aloha_airlines <- flight_data %>% 
+  filter(UniqueCarrier == 'AQ')
+alaska_airlines <- flight_data %>% 
+  filter(UniqueCarrier == 'AS')
+jetblue_airlines <- flight_data %>% 
+  filter(UniqueCarrier == 'B6')
+continental_air <- flight_data %>% 
+  filter(UniqueCarrier == 'CO')
+delta_airlines<- flight_data %>% 
+  filter(UniqueCarrier == 'DL')
+expressjet_air <- flight_data %>% 
+  filter(UniqueCarrier == 'EV')
+frontier_airlines <- flight_data %>% 
+  filter(UniqueCarrier == 'F9')
+airtran_airlines <- flight_data %>% 
+  filter(UniqueCarrier == 'FL')
+hawaiian_airlines <- flight_data %>% 
+  filter(UniqueCarrier == 'HA')
+envoy_airlines <-  flight_data %>% 
+  filter(UniqueCarrier == 'MQ')
+northwest_airlines <- flight_data %>% 
+  filter(UniqueCarrier == 'NW')
+psa_airlines <- flight_data %>% 
+  filter(UniqueCarrier == 'OH')
+skywest_airlines <- flight_data %>% 
+  filter(UniqueCarrier == 'OO')
+united_airlines <- flight_data %>% 
+  filter(UniqueCarrier == 'UA')
+us_airways<- flight_data %>% 
+  filter(UniqueCarrier == 'US')
+southwest_airlines<- flight_data %>% 
+  filter(UniqueCarrier == 'WN')
+jsx_airlines<- flight_data %>% 
+  filter(UniqueCarrier == 'XE')
+mesa_airlines<- flight_data %>% 
+  filter(UniqueCarrier == 'YV')
+all_airlines <- rbind(head(airtran_airlines,10000),head(alaska_airlines,10000),head(aloha_airlines,10000),head(american_airlines,10000),head(continental_air,10000),head(delta_airlines,10000),head(endeavor_air,10000),head(envoy_airlines,10000),head(expressjet_air,10000),head(frontier_airlines,10000),head(hawaiian_airlines,10000),head(jetblue_airlines,10000),head(jsx_airlines,10000),head(mesa_airlines,10000),head(northwest_airlines,10000),head(psa_airlines,10000),head(skywest_airlines,10000),head(southwest_airlines,10000),head(united_airlines,10000),head(us_airways,10000))
 
 
 ```
 
 
 ```{r}
-# jetblue_entries <- flight_data
-names(flight_data)
-flight_data["UniqueCarrier" == 'B6']
+set.seed(0808)
+flight_split <- initial_split(all_airlines, prop = 0.80,
+                                strata = ArrDelay)
+flight_train <- training(flight_split)
+flight_test <- testing(flight_split)
 
-united_airlines <- flight_data %>% filter(UniqueCarrier == "UA")
-jetblue_airlines <- flight_data %>% filter(UniqueCarrier == "B6", ArrDelay>30)
+```
 
+
+
+```{r}
+delta_recipe <- recipe(ArrDelay~DayofMonth+DepTime+Origin+SecurityDelay+CRSDepTime+Distance, data = flight_train) %>% 
+  step_center() %>% 
+  step_scale() %>% 
+  step_corr(threshold = 0.8) %>% 
+  step_dummy(all_nominal_predictors()) 
+  
+
+
+# sapply(lapply(delta_train, unique), length)
+lm_model <- linear_reg() %>%
+  set_engine("lm")
+
+lm_wflow <- workflow() %>%
+  add_model(lm_model) %>%
+  add_recipe(delta_recipe)
+
+
+lm_fit <- fit(lm_wflow, delta_train)
+lm_fit %>%
+  # This returns the parsnip object:
+  extract_fit_parsnip() %>%
+  # Now tidy the linear model object:
+  tidy()
+# summary(lm_fit)
+```
+
+```{r}
+AIC(lm_fit)
 ```
 
