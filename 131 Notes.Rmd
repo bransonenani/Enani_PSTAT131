@@ -1,0 +1,15 @@
+---
+title: "PSTAT 131 Notes - Week 5 Forward"
+author: "Branson Enani"
+date: "2022-10-25"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+***10/25***
+
+if we assume spread within each class is equal then we have linear discriminant analysis
+
