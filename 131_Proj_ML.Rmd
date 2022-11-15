@@ -1,14 +1,47 @@
-```{r}
+---
+title: "ML Proj - Branson Enani"
+author: "Branson Enani"
+output:
+    html_document:
+      toc: true
+      toc_float: true
+      code_folding: show
+---
 
+
+
+
+```{r}
+# loading in our data file
 flight_data <- read.csv('/Users/kerouac/Downloads/DelayedFlights.csv')
-library(tidyverse)
+
+# loading the necessary packages for analysis, calculations and visualizations
+library(corrplot)  
+library(discrim)  
+library(corrr)   
+library(knitr)   
+library(MASS)   
+library(tidyverse)   
 library(tidymodels)
+library(ggplot2)   
+library(ggrepel)
+library(ggimage)
+library(rpart.plot)
+library(vip)         
+library(vembedr)     
+library(janitor)     
+library(randomForest)  
+library(stringr)   
+library("dplyr")     
+library("yardstick")
+tidymodels_prefer()
+
 ```
 
 ```{r}
 
 carriers <- flight_data$UniqueCarrier
-
+dim(flight_data)
 endeavor_air <- flight_data %>% 
   filter(UniqueCarrier == '9E')
 american_airlines <- flight_data %>% 
@@ -49,25 +82,124 @@ jsx_airlines<- flight_data %>%
   filter(UniqueCarrier == 'XE')
 mesa_airlines<- flight_data %>% 
   filter(UniqueCarrier == 'YV')
-all_airlines <- rbind(head(airtran_airlines,10000),head(alaska_airlines,10000),head(aloha_airlines,10000),head(american_airlines,10000),head(continental_air,10000),head(delta_airlines,10000),head(endeavor_air,10000),head(envoy_airlines,10000),head(expressjet_air,10000),head(frontier_airlines,10000),head(hawaiian_airlines,10000),head(jetblue_airlines,10000),head(jsx_airlines,10000),head(mesa_airlines,10000),head(northwest_airlines,10000),head(psa_airlines,10000),head(skywest_airlines,10000),head(southwest_airlines,10000),head(united_airlines,10000),head(us_airways,10000))
+all_airlines <- rbind(sample_n(airtran_airlines, 10000),sample_n(alaska_airlines,10000),sample_n(aloha_airlines,500),sample_n(american_airlines,10000),sample_n(continental_air,10000),sample_n(delta_airlines,10000),sample_n(endeavor_air,10000),sample_n(envoy_airlines,10000),sample_n(expressjet_air,10000),sample_n(frontier_airlines,10000),sample_n(hawaiian_airlines,5000),sample_n(jetblue_airlines,10000),sample_n(jsx_airlines,10000),sample_n(mesa_airlines,10000),sample_n(northwest_airlines,10000),sample_n(psa_airlines,10000),sample_n(skywest_airlines,10000),sample_n(southwest_airlines,10000),sample_n(united_airlines,10000),sample_n(us_airways,10000))
+all_airlines
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'UA'] <- 'United'
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'US'] <- 'US Airways'
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'WN'] <- 'Southwest'
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'XE'] <- 'JSX'
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'AS'] <- 'Alaska'
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'OO'] <- 'Skywest'
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'FL'] <- 'Airtran'
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'DL'] <- 'Delta'
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'CO'] <- 'Continental'
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'B6'] <- 'JetBlue'
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'HA'] <- 'Hawaiian'
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'AA'] <- 'American'
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == '9E'] <- 'Endeavor'
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'EV'] <- 'ExpressJet'
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'F9'] <- 'Frontier'
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'OH'] <- 'PSA'
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'YV'] <- 'Mesa'
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'NW'] <- 'Northwest'
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'AQ'] <- 'Aloha'
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'MQ'] <- 'Envoy'
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'B6'] <- 'JetBlue'
+```
+
+
+
+```{r  echo = FALSE, fig.align='center'}
+# Using this chunk to mess around and make various charts or look at distributions in data
+
+#We want to see how delays vary between airlines
+all_airlines
+
+ggplot(all_airlines, aes(UniqueCarrier, ArrDelay)) +
+ 
+ 
+  geom_col()+
+  labs(
+    title = "Aviation Graph",
+    y = "Minutes",
+    x = "Airline"
+  )
+  # We want to be able to read labels better
+ 
+
+all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'UA'] <- 'United'
+ 
+unique(all_airlines$UniqueCarrier)
 
 
 ```
 
 
+
+
+
+
+
+
+
+
 ```{r}
-set.seed(0808)
+all_airlines_full_values <- na.omit(all_airlines)
+for (i in all_airlines_full_values){
+  all_airlines_full_values[all_airlines_full_values$ArrDelay<15, 'Delay_Level'] = 0
+  all_airlines_full_values[all_airlines_full_values$ArrDelay>=15&all_airlines_full_values$ArrDelay<30, 'Delay_Level'] = 1
+  all_airlines_full_values[all_airlines_full_values$ArrDelay>30&all_airlines_full_values$ArrDelay<60, 'Delay_Level'] = 2
+  all_airlines_full_values[all_airlines_full_values$ArrDelay>60&all_airlines_full_values$ArrDelay<80, 'Delay_Level'] = 3
+    
+}
+
+dim(all_airlines_full_values)  
+all_airlines_full_values
+
+all_airlines_full_values %>% 
+  group_by(Delay_Level)
+
+
+all_airlines_full_values %>% 
+  select(ArrDelay, Delay_Level)
+```
+
+
+```{r}
+ggplot(all_airlines_full_values)+
+  geom_bar(aes(x = all_airlines_full_values$Delay_Level),  colour = 'Blue', fill = 'Orange')+labs(title = "Flights Grouped by Delay Level",
+              subtitle = "Levels: 1-3",
+              x = "Delay Level", y = "Count", caption = 'Level 1: Between 15 and 30 minutes\nLevel 2: Between 30 and 60 minutes\nLevel 3: Greater than 60 minutes' )
+  
+ 
+
+
+fl_order <- all_airlines_full_values %>% 
+  group_by(Delay_Level) %>% 
+  summarise('mean_delay' = round(mean(ArrDelay), digits = 0)) %>%
+  arrange(desc(mean_delay))
+ 
+fl_order  
+```
+Here we can see how the distribution of flight delays with the majority of delays being in level 1 and considerably less in levels 2 and 3.
+```{r}
+set.seed(123)
 flight_split <- initial_split(all_airlines, prop = 0.80,
                                 strata = ArrDelay)
 flight_train <- training(flight_split)
 flight_test <- testing(flight_split)
 
+
+train_mat <- flight_train %>% 
+  dplyr::select(is.numeric)
+  
+train_mat
+
 ```
 
 
-
 ```{r}
-delta_recipe <- recipe(ArrDelay~DayofMonth+DepTime+Origin+SecurityDelay+CRSDepTime+Distance, data = flight_train) %>% 
+flight_recipe <- recipe(ArrDelay~DayofMonth+DepTime+Origin+SecurityDelay+CRSDepTime+Distance, data = flight_train) %>% 
   step_center() %>% 
   step_scale() %>% 
   step_corr(threshold = 0.8) %>% 
@@ -81,19 +213,9 @@ lm_model <- linear_reg() %>%
 
 lm_wflow <- workflow() %>%
   add_model(lm_model) %>%
-  add_recipe(delta_recipe)
+  add_recipe(flight_recipe)
 
 
-lm_fit <- fit(lm_wflow, delta_train)
-lm_fit %>%
-  # This returns the parsnip object:
-  extract_fit_parsnip() %>%
-  # Now tidy the linear model object:
-  tidy()
-# summary(lm_fit)
+
+variable.names(all_airlines)
 ```
-
-```{r}
-AIC(lm_fit)
-```
-
