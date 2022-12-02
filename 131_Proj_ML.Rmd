@@ -8,7 +8,9 @@ output:
       code_folding: show
 ---
 
+***Introduction***
 
+This project is centered around predicting flight delays from a number of variables, with each entry in the dataset being a specific flight from the year of 2008. 
 
 
 ```{r}
@@ -38,7 +40,68 @@ tidymodels_prefer()
 
 ```
 
+In order to get a clear picture of the data, let's go over the different variables and a summary of what is represented in the set. The variables and a short description are described below
+
+Year 2008 for all flights
+
+Month: 1-12 is January through February
+
+DayOfMonth: 1-31 possible days of the month
+
+DayOfWeek: 1 (Monday) through 7 (Sunday)
+
+DepTime: Actual departure time in local time
+
+CRSDepTime: Scheduled departure time
+
+ArrTime Actual arrival time in local time
+
+CRSArrTime Ccheduled arrival time in local time
+
+UniqueCarrier: Unique Carrier Code (airline)
+
+FlightNum: Specific Flight Number
+
+TailNum: Airplane Tail Number which is unique for each aircraft
+
+ActualElapsedTime: Actual Elapsed Time in minutes
+
+CRSElapsedTime: Scheduled Elapsed Time in minutes
+AirTime: Time in the air in minutes
+
+ArrDelay: Arrival delay, in minutes
+
+DepDelay: Departure delay, in minutes
+
+Origin: origin IATA airport code
+
+Dest: destination IATA airport code
+
+Distance: Distance of trip in miles
+
+TaxiIn: taxi in time, in minutes
+
+TaxiOut: taxi out time in minutes
+
+Cancelled: was the flight cancelled?
+
+CancellationCode reason for cancellation (A = carrier, B = weather, C = NAS, D = security)
+
+Diverted 1 = yes, 0 = no
+
+CarrierDelay in minutes: Carrier delay is any delay that is the fault of the Carrier. Examples of this would be aircraft damage, cleaning of the aircraft, inspection etc. 
+
+WeatherDelay: Weather delay is delay caused by hazardous weather
+
+NASDelay in minutes: Delay that is caused by the the National Airspace System (NAS), generally operations at a particular airport such as heavy traffic
+
+SecurityDelay in minutes: Security delay is security measures/events causing delay
+
+LateAircraftDelay in minutes: Arrival delay at an airport that is due  late arrival of the same aircraft at a previous airport. 
+
 ```{r}
+
+set.seed(1234)
 
 carriers <- flight_data$UniqueCarrier
 dim(flight_data)
@@ -82,8 +145,8 @@ jsx_airlines<- flight_data %>%
   filter(UniqueCarrier == 'XE')
 mesa_airlines<- flight_data %>% 
   filter(UniqueCarrier == 'YV')
-all_airlines <- rbind(sample_n(airtran_airlines, 10000),sample_n(alaska_airlines,10000),sample_n(aloha_airlines,500),sample_n(american_airlines,10000),sample_n(continental_air,10000),sample_n(delta_airlines,10000),sample_n(endeavor_air,10000),sample_n(envoy_airlines,10000),sample_n(expressjet_air,10000),sample_n(frontier_airlines,10000),sample_n(hawaiian_airlines,5000),sample_n(jetblue_airlines,10000),sample_n(jsx_airlines,10000),sample_n(mesa_airlines,10000),sample_n(northwest_airlines,10000),sample_n(psa_airlines,10000),sample_n(skywest_airlines,10000),sample_n(southwest_airlines,10000),sample_n(united_airlines,10000),sample_n(us_airways,10000))
-all_airlines
+all_airlines <- rbind(sample_n(airtran_airlines, 500),sample_n(alaska_airlines,500),sample_n(aloha_airlines,500),sample_n(american_airlines,500),sample_n(continental_air,500),sample_n(delta_airlines,500),sample_n(endeavor_air,500),sample_n(envoy_airlines,500),sample_n(expressjet_air,500),sample_n(frontier_airlines,500),sample_n(hawaiian_airlines,500),sample_n(jetblue_airlines,500),sample_n(jsx_airlines,500),sample_n(mesa_airlines,500),sample_n(northwest_airlines,500),sample_n(psa_airlines,500),sample_n(skywest_airlines,500),sample_n(southwest_airlines,500),sample_n(united_airlines,500),sample_n(us_airways,500))
+
 all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'UA'] <- 'United'
 all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'US'] <- 'US Airways'
 all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'WN'] <- 'Southwest'
@@ -106,116 +169,328 @@ all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'AQ'] <- 'Aloha'
 all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'MQ'] <- 'Envoy'
 all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'B6'] <- 'JetBlue'
 ```
-
+We want to examine our data a bit and make it slightly easier to read, so we are going to change the UniqueCarrier from a code to the Name of the Airline. We also want to see how many entries we have. After looking at the dimensions of the dataset, we have 1,936,758 entries which is quite a few meaning that this is a large dataset. 
 
 
 ```{r  echo = FALSE, fig.align='center'}
-# Using this chunk to mess around and make various charts or look at distributions in data
-
-#We want to see how delays vary between airlines
-all_airlines
-
-ggplot(all_airlines, aes(UniqueCarrier, ArrDelay)) +
- 
- 
-  geom_col()+
-  labs(
-    title = "Aviation Graph",
-    y = "Minutes",
-    x = "Airline"
-  )
-  # We want to be able to read labels better
- 
-
-all_airlines$UniqueCarrier[all_airlines$UniqueCarrier == 'UA'] <- 'United'
- 
 unique(all_airlines$UniqueCarrier)
 
-
 ```
+Above are the various carriers that are operating the flights.
 
+```{r}
+unique(all_airlines$Origin)
+```
+Above are the various Origins by their IATA code
 
-
-
-
-
-
+```{r}
+unique(all_airlines$Dest)
+```
+Above are the various destinations by their IATA code
 
 
 
 ```{r}
 all_airlines_full_values <- na.omit(all_airlines)
 for (i in all_airlines_full_values){
-  all_airlines_full_values[all_airlines_full_values$ArrDelay<15, 'Delay_Level'] = 0
-  all_airlines_full_values[all_airlines_full_values$ArrDelay>=15&all_airlines_full_values$ArrDelay<30, 'Delay_Level'] = 1
-  all_airlines_full_values[all_airlines_full_values$ArrDelay>30&all_airlines_full_values$ArrDelay<60, 'Delay_Level'] = 2
-  all_airlines_full_values[all_airlines_full_values$ArrDelay>60&all_airlines_full_values$ArrDelay<80, 'Delay_Level'] = 3
+  all_airlines_full_values[all_airlines_full_values$ArrDelay<20, 'Delay_Level'] = 1
+  all_airlines_full_values[all_airlines_full_values$ArrDelay>=20&all_airlines_full_values$ArrDelay<40, 'Delay_Level'] = 2
+  all_airlines_full_values[all_airlines_full_values$ArrDelay>=40&all_airlines_full_values$ArrDelay<60, 'Delay_Level'] = 3
+  all_airlines_full_values[all_airlines_full_values$ArrDelay>=60&all_airlines_full_values$ArrDelay<80, 'Delay_Level'] = 4
     
 }
 
-dim(all_airlines_full_values)  
-all_airlines_full_values
 
-all_airlines_full_values %>% 
-  group_by(Delay_Level)
+all_airlines_full_values <- drop_na(all_airlines_full_values)
+all_airlines_full_values$Delay_Level <- as.factor(all_airlines_full_values$Delay_Level)
+all_airlines_full_values$Month <- as.factor(all_airlines_full_values$Month)
+all_airlines_full_values$DayOfWeek <- as.factor(all_airlines_full_values$DayOfWeek)
 
-
-all_airlines_full_values %>% 
-  select(ArrDelay, Delay_Level)
 ```
+What we are doing here is adding another variable called Delay Level to our Data Set in order to have a classification for delay as opposed to a number. The delay levels range from 1-4 based upon how long the delay is. Additionally, we are changing the Delay Level, Month, and Day of Week to a factor in order to consider them as levels when we are fitting models. 
 
 
 ```{r}
 ggplot(all_airlines_full_values)+
   geom_bar(aes(x = all_airlines_full_values$Delay_Level),  colour = 'Blue', fill = 'Orange')+labs(title = "Flights Grouped by Delay Level",
-              subtitle = "Levels: 1-3",
-              x = "Delay Level", y = "Count", caption = 'Level 1: Between 15 and 30 minutes\nLevel 2: Between 30 and 60 minutes\nLevel 3: Greater than 60 minutes' )
+              subtitle = "Levels: 1-4",
+              x = "Delay Level", y = "Count", caption = 'Level 1: Between 0 and 20 minutes\nLevel 2: Between 20 and 40 minutes\nLevel 3: Between 40 and 60 minutes\nLevel 4: Between 60 and 80 minutes' )
   
- 
+```
+This plot shows the number of flights that fall into each delay level and a description of how each Delay Level is determined based upon the number of minutes. 
 
 
-fl_order <- all_airlines_full_values %>% 
-  group_by(Delay_Level) %>% 
+```{r}
+by_month_dat <- all_airlines_full_values %>% 
+  group_by(month = Month) %>% 
+  summarize(ArrDelay = mean(ArrDelay))
+
+ggplot(by_month_dat)+
+  geom_col(aes(x =month, y = ArrDelay), fill ='blue')
+
+```
+This plot shows the mean Arrival Delay based upon the month of the year which shows that there isn't a great amount of variation from month to month. 
+
+
+
+
+
+
+
+
+```{r}
+
+by_month_weather <- all_airlines_full_values %>% 
+  group_by(month = Month) %>% 
+  summarize(WeatherDelay = mean(WeatherDelay))
+
+ggplot(by_month_weather)+
+  geom_col(aes(x =month, y = WeatherDelay), fill = 'forestgreen')
+```
+This plot shows the average Weather Delay based upon the month of the year, with some months seeing more of a weather delay than others. 
+  
+
+fl_order <- all_airlines_full_values %>%
+  group_by(Delay_Level) %>%
   summarise('mean_delay' = round(mean(ArrDelay), digits = 0)) %>%
   arrange(desc(mean_delay))
- 
-fl_order  
-```
-Here we can see how the distribution of flight delays with the majority of delays being in level 1 and considerably less in levels 2 and 3.
+
+fl_order
+
+
+
 ```{r}
-set.seed(123)
-flight_split <- initial_split(all_airlines, prop = 0.80,
+various_origins <- all_airlines_full_values %>% 
+  group_by(Origin)
+
+origin_delay_flights <- group_of_origins %>% 
+  summarise(avg_delay = mean(ArrDelay),
+            num_of_flights = length(unique(FlightNum)))
+```
+We can examine the amount of flights for each Origin and the mean delay for that origin
+
+```{r}
+origin_delay_flights %>% 
+  filter(num_of_flights>50) %>% 
+  arrange(-avg_delay)
+```
+We are checking here to see the Origins with the greatest delays where there are greater than 50 entries from that particular origin. We want to eliminate airports with few flights because the variance can be too small from these airports and the data has a strong bias. With the airports above, it is clear that some airports are more prone to greater delays.  
+
+
+###WE WANT TO TAKE A LOOK AND EXPLORE CARRIER DELAY FROM EACH CARRIER
+###AIM IS TO BREAK UP PLOTS BY SPLITTING UP CARRIERS AND LOOKING AT EACH PLOT SO GRAPH IS NOT AS DIFFICULT TO READ
+
+```{r}
+airlines_first_half <- all_airlines_full_values %>% 
+  filter(UniqueCarrier == 'Airtran' | UniqueCarrier == 'Alaska' | UniqueCarrier == 'Aloha' | UniqueCarrier == 'American' | UniqueCarrier == 'Continental' | UniqueCarrier == 'Delta'| UniqueCarrier == 'Endeavor'| UniqueCarrier == 'Envoy'| UniqueCarrier == 'ExpressJet'| UniqueCarrier == 'Frontier')
+
+airlines_second_half <- all_airlines_full_values %>% 
+  filter(UniqueCarrier == 'Hawaiian' | UniqueCarrier == 'JetBlue' | UniqueCarrier == 'JSX' | UniqueCarrier == 'Mesa' | UniqueCarrier == 'Northwest' | UniqueCarrier == 'PSA'| UniqueCarrier == 'Skywest'| UniqueCarrier == 'United'| UniqueCarrier == 'US Airways')
+```
+In preparation to plot the various carriers and there cumulative delays we are splitting the data up so that it is easier to read the names of the carriers. 
+
+
+```{r}
+
+length(unique(all_airlines$UniqueCarrier))
+group_by_uniquecarrier <- all_airlines_full_values %>% 
+  group_by(UniqueCarrier)
+
+carrier_graphing_data <- group_by_uniquecarrier %>% 
+  summarise(avg_delay = sum(ArrDelay))
+
+ggplot((carrier_graphing_data[1:10,])) +
+  geom_col(aes(x = UniqueCarrier, y = avg_delay), fill = 'maroon3')+
+  labs(x = 'Unique Carrier', y = "Cumulative Carrier Delay Minutes")
+
+ggplot((carrier_graphing_data[10:20,])) +
+  geom_col(aes(x = UniqueCarrier, y = avg_delay), fill = 'maroon3')+
+  labs(x = 'Unique Carrier', y = "Cumulative Carrier Delay Minutes")
+```
+
+
+
+
+ggplot(airlines_first_half) +
+  geom_col(aes(x = UniqueCarrier, y = CarrierDelay), fill = 'maroon3')+
+  labs(x = 'Unique Carrier', y = "Cumulative Carrier Delay Minutes")+
+  ylim(0,6500)
+ 
+
+ggplot(airlines_second_half) +
+  geom_col(aes(x = UniqueCarrier, y = CarrierDelay), fill = 'maroon3')+
+  labs(x = 'Unique Carrier', y = "Cumulative Carrier Delay Minutes")+
+  ylim(0, 6500)
+
+  
+
+all_airlines_full_values %>% 
+  count(Delay_Level)
+
+
+max(all_airlines_full_values$ArrDelay)    
+
+Here we can see how the distribution of flight delays with the majority of delays being in level 1 and considerably less in levels 2 and 3.
+
+
+```{r}
+
+flight_split <- initial_split(all_airlines_full_values, prop = 0.80,
                                 strata = ArrDelay)
 flight_train <- training(flight_split)
 flight_test <- testing(flight_split)
 
 
 train_mat <- flight_train %>% 
-  dplyr::select(is.numeric)
+  dplyr::select(where(is.numeric))
   
 train_mat
-
 ```
 
 
 ```{r}
-flight_recipe <- recipe(ArrDelay~DayofMonth+DepTime+Origin+SecurityDelay+CRSDepTime+Distance, data = flight_train) %>% 
-  step_center() %>% 
-  step_scale() %>% 
-  step_corr(threshold = 0.8) %>% 
-  step_dummy(all_nominal_predictors()) 
+colnames(flight_train)
+# flight_recipe <- recipe(Delay_Level~SecurityDelay+Month+Distance+WeatherDelay+LateAircraftDelay+AirTime, data = flight_train) 
+
+  flight_recipe <- recipe(Delay_Level~LateAircraftDelay+NASDelay+WeatherDelay+UniqueCarrier+DepDelay+Month+TaxiOut, data = flight_train)%>% 
+    step_center() %>% 
+    step_scale() %>% 
+    step_corr(threshold = 0.8) %>% 
+    step_dummy(all_nominal_predictors()) 
   
 
 
 # sapply(lapply(delta_train, unique), length)
-lm_model <- linear_reg() %>%
-  set_engine("lm")
+# lm_model <- linear_reg() %>%
+#   set_engine("lm")
+# 
+# lm_wflow <- workflow() %>%
+#   add_model(lm_model) %>%
+#   add_recipe(flight_recipe)
+# 
+# 
+# 
+# variable.names(all_airlines)
+# 
+# fit(lm_wflow, data = flight_train)
 
-lm_wflow <- workflow() %>%
-  add_model(lm_model) %>%
+log_model <- logistic_reg() %>% 
+  set_engine('glm') %>% 
+  set_mode('classification')
+
+log_wflow <- workflow() %>%
+  add_model(log_model) %>%
   add_recipe(flight_recipe)
 
 
+log_fit <- fit(log_wflow, flight_train)
 
-variable.names(all_airlines)
+
+
+log_fit %>%
+  # This returns the parsnip object:
+  extract_fit_parsnip() %>%
+  # Now tidy the linear model object:
+  tidy()
+
+log_reg_acc <- augment(log_fit, new_data = flight_test) %>%
+  accuracy(truth = Delay_Level, estimate = .pred_class)
+
+log_reg_acc
+
+predicted_delay_level <- predict(log_fit, new_data = flight_test)
+
+pred_vs_true <- bind_cols(predicted_delay_level, flight_test$Delay_Level)
+colnames(pred_vs_true) <- c('prediction', 'truth')
+pred_vs_true
 ```
+
+```{r}
+nb_mod <- naive_Bayes() %>% 
+  set_mode("classification") %>% 
+  set_engine("klaR") %>% 
+  set_args(usekernel = FALSE) 
+
+nb_wkflow <- workflow() %>% 
+  add_model(nb_mod) %>% 
+  add_recipe(flight_recipe)
+
+nb_fit <- fit(nb_wkflow, flight_train)
+
+nb_acc <- augment(nb_fit, new_data = flight_test) %>%
+  accuracy(truth = Delay_Level, estimate = .pred_class)
+
+nb_acc
+```
+
+```{r}
+
+flight_folds <- vfold_cv(flight_train, v = 10)
+
+lda_mod <- discrim_linear() %>%
+  set_mode("classification") %>%
+  set_engine("MASS")
+lda_wflow <- workflow() %>%
+  add_model(lda_mod) %>%
+  add_recipe(flight_recipe)
+
+lda_model_fit <- fit(lda_wflow, flight_train)
+
+
+lda_model_acc <- augment(lda_model_fit, new_data = flight_train) %>%
+  accuracy(truth = Delay_Level, estimate = .pred_class)
+
+lda_model_acc
+```
+
+
+
+```{r}
+
+lda_model_folds_fit <- fit_resamples(lda_wflow, flight_folds)
+collect_metrics(lda_model_folds_fit)
+
+```
+
+```{r}
+qda_mod <- discrim_quad() %>% 
+  set_mode("classification") %>% 
+  set_engine("MASS")
+
+qda_wkflow <- workflow() %>% 
+  add_model(qda_mod) %>% 
+  add_recipe(flight_recipe)
+
+qda_fit <- fit(qda_wkflow, flight_train)
+
+qda_fit
+
+qda_acc <- augment(qda_fit, new_data = flight_test) %>%
+  accuracy(truth = Delay_Level, estimate = .pred_class)
+
+qda_acc
+```
+```{r}
+forest_model <- rand_forest(mtry = tune(), trees = tune(), min_n = tune()) %>%
+  set_engine("ranger", importance = "impurity") %>%
+  set_mode("classification")
+
+forest_wflow <- workflow() %>% 
+  add_model(forest_model) %>% 
+  add_recipe(flight_recipe)
+
+forest_grid <- grid_regular(mtry(range = c(1,8)), trees(range(1,200)), min_n(range(1,30)), levels = 8)
+
+
+rf_tune_res <- tune_grid(forest_wflow, resamples = flight_folds, grid = rf_grid, metrics = metric_set(roc_auc) )
+
+
+save(rf_tunes_res, file = 'flight_randf.rda')
+
+
+```
+```{r}
+
+```
+
+
